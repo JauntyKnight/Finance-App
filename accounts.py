@@ -32,9 +32,8 @@ class Date(datetime.date):
 class Account:
     def __init__(self, name, balance=0, currency='EUR'):
         self.name = name
-        self.balance = balance
+        self.balance = int(balance)
         self.currency = currency
-        self.history = []
 
     def add(self, amount=0):
         self.balance += amount
@@ -65,6 +64,16 @@ class Category:
     def __eq__(self, other):
         return self.name == other.name
 
+
+categories = set()
+categories.add(Category('Travel'))
+categories.add(Category('Restaurants'))
+categories.add(Category('Shopping'))
+categories.add(Category('Online Shopping'))
+categories.add(Category('Other'))
+categories.add(Category('Living'))
+categories.add(Category('Entertainment'))
+categories.add(Category('Groceries'))
 
 accounts = set()
 accounts.add(Account('smth'))

@@ -5,18 +5,23 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GdkPixbuf, Pango
 
 
-def get_image_with_size(file, width, height):
+def get_image_with_size(file: str, width: int, height: int):
     """
     returns a GTK.Image() object from file with the requested size
-    :param file: the path to the image
+    :param file: the path to the image without the file extension
     :param width: desired width
     :param height: desired height
     :return: GTK.Image() object
     """
     img = Gtk.Image()
-    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-        'img/' + file + '.png', width=width, height=height, preserve_aspect_ratio=False
-    )
+    try:
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            'img/' + file + '.png', width=width, height=height, preserve_aspect_ratio=False
+        )
+    except:
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            'img/Other.png', width=width, height=height, preserve_aspect_ratio=False
+        )
     img.set_from_pixbuf(pixbuf)
     return img
 
@@ -32,7 +37,7 @@ def on_menu_btn_clicked(btn):
     # the tab change function
     global win
     if btn.name == win.activeTabName:
-        # the selected tab is already running, no need to do anythin
+        # the selected tab is already running, no need to do anything
         return
 
     win.box.remove(win.activeTab)
@@ -52,32 +57,36 @@ def on_menu_btn_clicked(btn):
 
 class InputDialog(Gtk.Dialog):
     def __init__(self, title, *data):
-        super(InputDialog, self).__init__(title = title)
+        super(InputDialog, self).__init__(title=title)
         # displays an input dialog with the form of a grid
         # to get input for each value from data
         # each row is represented by the label and entry for a value from data
         content = self.get_content_area()
-        grid = Gtk.Grid(column_spacing=10, row_spacing=10)
-        content.add(grid)
+        self.grid = Gtk.Grid(column_spacing=10, row_spacing=10)
+        content.add(self.grid)
         self.data = data
         self.response = [None] * len(self.data)
 
         for i in range(len(self.data)):
             self.response[i] = Gtk.Entry(max_length=20, margin_right=20)
-            grid.attach(Gtk.Label(label=str(self.data[i]), margin_left=20), 0, i, 1, 1)
-            grid.attach(self.response[i], 1, i, 1, 1)
+            self.grid.attach(Gtk.Label(label=str(self.data[i]), margin_left=20), 0, i, 1, 1)
+            self.grid.attach(self.response[i], 1, i, 1, 1)
 
         okbtn = Gtk.Button(label='Ok')
         okbtn.connect('clicked', self.on_ok_clicked)
         cancelbtn = Gtk.Button(label='Cancel')
-        cancelbtn.connect('clicked', lambda btn: self.destroy())
-        grid.attach(create_box_with_children(okbtn, cancelbtn), 0, len(self.data), 2, 1)
-        grid.show_all()
+        self.ok = False
+        cancelbtn.connect('clicked', self.on_cancel_clicked)
+        self.grid.attach(create_box_with_children(okbtn, cancelbtn), 0, len(self.data), 2, 1)
+        self.grid.show_all()
 
     def on_ok_clicked(self, btn):
         self.response = [entry.get_text() for entry in self.response]
+        self.ok = True
         self.destroy()
 
+    def on_cancel_clicked(self, btn):
+        self.destroy()
 
 class MenuItem(Gtk.Button):
     def __init__(self, name):
@@ -225,6 +234,7 @@ class AccountBtn(Gtk.Button):
         vbox = Gtk.VBox()
         self.add(vbox)
         vbox.pack_start(Gtk.Label(label=self.account.name), True, True, 0)
+        vbox.pack_start(Gtk.Label(label=self.account.balance), True, True, 0)
         vbox.pack_start(Gtk.Label(label=self.account.currency), True, True, 0)
         self.show_all()
 
@@ -242,20 +252,139 @@ class AccountsTab(Gtk.ScrolledWindow):
         self.draw_accounts()
 
     def draw_accounts(self):
+        # clear the grid first
+        try:
+            for i in range(5):
+                self.grid.remove_column(0)
+        except:
+            pass
+
         row, column = 0, 0
         for account in accounts.accounts:
-            self.grid.attach(AccountBtn(account), column, row, 1, 1)
+            btn = AccountBtn(account)
+            btn.connect('clicked', self.on_account_btn_clicked)
+            self.grid.attach(btn, column, row, 1, 1)
             column += 1
             if column == 5:
                 row += 1
                 column = 0
+        btn = Gtk.Button()
+        btn.add(get_image_with_size('Add', 150, 150))
+        btn.connect('clicked', self.on_add_btn_clicked)
+        self.grid.attach(btn, column, row, 1, 1)
         self.show_all()
 
+    def on_add_btn_clicked(self, btn):
+        dialog = InputDialog('New Account', 'Name', 'Balance', 'Currency')
+        dialog.run()
+        dialog.destroy()
+        response = dialog.response
+        if self.new_account_validation(response):
+            accounts.accounts.add(accounts.Account(*response))
+            self.draw_accounts()
+        else:
+            dialog = InputDialog('Error')
+            dialog.run()
+            dialog.destroy()
 
-class CategoriesTab(Tab):
+    def new_account_validation(self, data):
+        if accounts.Account(data[0]) in accounts.accounts:
+            return False
+        try:
+            int(data[1])
+        except:
+            return False
+        if data[2] not in accounts.data['rates']:
+            return False
+        return True
+
+    def on_account_btn_clicked(self, btn):
+        dialog = InputDialog('New Account', 'Name', 'Balance', 'Currency')
+        dialog.response[0].set_text(btn.account.name)
+        dialog.response[1].set_text(str(btn.account.balance))
+        dialog.response[2].set_text(btn.account.currency)
+        deletebtn = Gtk.Button(label='Delete')
+        deletebtn.connect('clicked', self.delete_account, dialog, btn.account)
+        dialog.grid.attach(deletebtn, 0, len(dialog.data) + 1, 2, 1)
+        dialog.show_all()
+        dialog.run()
+        dialog.destroy()
+
+        # checking if the account has been deleted
+        if not dialog.ok:
+            return
+
+        # if reached here, we have to change the data of the account
+        if (
+            dialog.response[0] != btn.account.name
+            and not self.new_account_validation(dialog.response)
+        ):
+            errordialog = InputDialog('Error')
+            errordialog.run()
+            errordialog.destroy()
+            return
+
+        self.delete_account(None, dialog, btn.account)
+        accounts.accounts.add(accounts.Account(*dialog.response))
+        self.draw_accounts()
+
+    def delete_account(self, btn, dialog, account):
+        dialog.destroy()
+        accounts.accounts.remove(account)
+        self.draw_accounts()
+
+
+class CategoryBtn(Gtk.Button):
+    def __init__(self, category):
+        super(CategoryBtn, self).__init__()
+        self.set_size_request(180, 300)
+        self.category = category
+        vbox = Gtk.VBox()
+        self.add(vbox)
+        vbox.pack_start(get_image_with_size(self.category.name, 150, 150), True, True, 0)
+        vbox.pack_start(Gtk.Label(label=self.category.name), True, True, 0)
+        self.show_all()
+
+class CategoriesTab(Gtk.ScrolledWindow):
     def __init__(self):
         super(CategoriesTab, self).__init__()
+        self.grid = Gtk.Grid()
+        self.grid.set_size_request(1000, 800)
+        self.set_min_content_height(800)
+        self.set_min_content_width(1000)
+        self.add(self.grid)
+        self.grid.set_row_spacing(20)
+        self.grid.set_column_spacing(20)
+        self.draw_categories()
 
+    def draw_categories(self):
+        # clear the grid first
+        try:
+            for i in range(5):
+                self.grid.remove_column(0)
+        except:
+            pass
+
+        row, column = 0, 0
+        for category in accounts.categories:
+            btn = CategoryBtn(category)
+            btn.connect('clicked', self.on_category_btn_clicked)
+            self.grid.attach(btn, column, row, 1, 1)
+            column += 1
+            if column == 5:
+                row += 1
+                column = 0
+        btn = Gtk.Button()
+        btn.add(get_image_with_size('Add', 150, 150))
+        btn.connect('clicked', self.on_add_btn_clicked)
+        self.grid.attach(btn, column, row, 1, 1)
+        self.show_all()
+
+    def on_category_btn_clicked(self, btn):
+        pass
+
+    def on_add_btn_clicked(self, btn):
+        pass
 
 class ExchangeTab(Tab):
     def __init__(self):
