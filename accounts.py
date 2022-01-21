@@ -55,8 +55,39 @@ class Account:
         return self.name < other.name
 
 
+class Category:
+    def __init__(self, name=None):
+        self.name = name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+
 accounts = set()
 accounts.add(Account('smth'))
+accounts.add(Account('smth1'))
+accounts.add(Account('smth2'))
+accounts.add(Account('smth3'))
+accounts.add(Account('smth4'))
+accounts.add(Account('smth5'))
+accounts.add(Account('smth6'))
+accounts.add(Account('smth7'))
+accounts.add(Account('smth8'))
+accounts.add(Account('smth9'))
+accounts.add(Account('smth10'))
+accounts.add(Account('smth11'))
+accounts.add(Account('smth12'))
+accounts.add(Account('smth13'))
+accounts.add(Account('smth14'))
+accounts.add(Account('smth15'))
+accounts.add(Account('smth16'))
+accounts.add(Account('smth17'))
+accounts.add(Account('smth18'))
+accounts.add(Account('smth19'))
+accounts.add(Account('smth20'))
 
 
 class Transaction:

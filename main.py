@@ -217,10 +217,39 @@ class OverviewTab(Tab):
         response = dialog.response
 
 
-class AccountsTab(Tab):
+class AccountBtn(Gtk.Button):
+    def __init__(self, account):
+        super(AccountBtn, self).__init__()
+        self.set_size_request(180, 300)
+        self.account = account
+        vbox = Gtk.VBox()
+        self.add(vbox)
+        vbox.pack_start(Gtk.Label(label=self.account.name), True, True, 0)
+        vbox.pack_start(Gtk.Label(label=self.account.currency), True, True, 0)
+        self.show_all()
+
+
+class AccountsTab(Gtk.ScrolledWindow):
     def __init__(self):
         super(AccountsTab, self).__init__()
+        self.grid = Gtk.Grid()
+        self.grid.set_size_request(1000, 800)
+        self.set_min_content_height(800)
+        self.set_min_content_width(1000)
+        self.add(self.grid)
+        self.grid.set_row_spacing(20)
+        self.grid.set_column_spacing(20)
+        self.draw_accounts()
 
+    def draw_accounts(self):
+        row, column = 0, 0
+        for account in accounts.accounts:
+            self.grid.attach(AccountBtn(account), column, row, 1, 1)
+            column += 1
+            if column == 5:
+                row += 1
+                column = 0
+        self.show_all()
 
 
 class CategoriesTab(Tab):
