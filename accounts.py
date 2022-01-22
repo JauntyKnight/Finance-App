@@ -244,7 +244,7 @@ def converted(amount: int, curr1: str, curr2: str, date=None):
 
 def transaction_between_accounts(acc1: Account, acc2: Account, amount: int, date=None):
     # subtracts amount from acc1.balance and adds it to acc2.balance
-    acc1.sub(amount)
+    acc1.sub_funds(amount)
     acc2.add_funds(converted(amount, acc1.currency, acc2.currency, date))
 
 
