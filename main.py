@@ -161,15 +161,19 @@ class AddInputDialog(Gtk.Dialog):
         self.grid.attach(summaryTransfer, 2, 3, 1, 1)
 
         self.grid.attach(Gtk.Label(label='Account'), 0, 4, 1, 1)
-        self.account = Gtk.Label(label='Cash')
+        for i in accounts.accounts:
+            self.account = Gtk.Label(label=f'{i.name}: {i.currency}')
+            break
         self.response['Account'] = self.account
         self.grid.attach(self.account, 1, 4, 1, 1)
         btn = Gtk.Button(label='Select')
         btn.connect('clicked', self.on_account_btn_clicked, 0)
         self.grid.attach(btn, 2, 4, 1, 1)
 
-        self.account2 = Gtk.Label(label='Cash')
-        self.response['Account2'] = self.account
+        for i in accounts.accounts:
+            self.account2 = Gtk.Label(label=f'{i.name}: {i.currency}')
+            break
+        self.response['Account2'] = self.account2
 
         self.okbtn = Gtk.Button(label='Ok')
         self.okbtn.connect('clicked', self.on_ok_btn_clicked)
@@ -177,6 +181,8 @@ class AddInputDialog(Gtk.Dialog):
         self.cancelbtn = Gtk.Button(label='Cancel')
         self.cancelbtn.connect('clicked', lambda x: self.destroy())
         self.grid.attach(self.cancelbtn, 2, 5, 1, 1)
+
+        self.ok = False
 
         self.show_all()
 
@@ -187,7 +193,8 @@ class AddInputDialog(Gtk.Dialog):
             except AttributeError:
                 self.response[key] = self.response[key].get_text()
         self.response['Summary'] = self.summary
-        print(self.response)
+        # print(self.response)
+        self.ok = True
         self.destroy()
 
     def on_category_btn_clicked(self, btn):
@@ -200,7 +207,7 @@ class AddInputDialog(Gtk.Dialog):
 
     def on_account_btn_clicked(self, btn, condition):
         # sets the value for self.account2 if condition
-        # and self.accounf if false
+        # and self.account if false
         dialog = SelectDialog('Select Category', accounts.accounts)
         dialog.run()
         dialog.destroy()
@@ -291,10 +298,12 @@ class Tab(Gtk.Grid):
 class Transaction(list):
     def __init__(self, transaction):
         super(Transaction, self).__init__()
-        data = (
+        data = [
             transaction.date, transaction.amount, transaction.category,
             transaction.summary, transaction.account
-        )
+        ]
+        if transaction.account2:
+            data[-1] = f'{transaction.account} -> {transaction.account2}'
         for i in data:
             self.append(str(i))
 
@@ -365,7 +374,19 @@ class OverviewTab(Tab):
         dialog = AddInputDialog('Add Transaction')
         dialog.run()
         dialog.destroy()
+        if not dialog.ok:
+            return
+
         response = dialog.response
+        if not accounts.validate_transaction(response):
+            errordialog = InputDialog('Error')
+            errordialog.run()
+            errordialog.destroy()
+            return
+        accounts.transactionList.push(accounts.Transaction(
+            *accounts.create_transaction_data(response)
+        ))
+        self.treeView.set_model(OverviewStore())
 
     def on_filter_btn_clicked(self, btn):
         pass

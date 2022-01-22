@@ -42,7 +42,7 @@ class Account:
         self.balance -= amount
 
     def __str__(self):
-        return self.name
+        return f'{self.name}: {self.currency}'
 
     def __hash__(self):
         return hash(self.name)
@@ -57,6 +57,12 @@ class Account:
 class Category:
     def __init__(self, name=None):
         self.name = name
+
+    def __str__(self):
+        return self.name
+
+    def __lt__(self, other):
+        return self.name < other.name
 
     def __hash__(self):
         return hash(self.name)
@@ -81,13 +87,46 @@ accounts.add(Account('smth'))
 accounts.add(Account('Card'))
 accounts.add(Account('Cash'))
 
+
+def validate_transaction(data):
+    # checking the date
+    try:
+        Date(*date_str_to_int(data['Date']))
+    except:
+        return False
+    # checking the amount
+    try:
+        a = int(data['Amount'])
+        if a <= 0:
+            return False
+    except:
+        return False
+    # no need to check smth else, since the other options are choosen
+    # from a set of options
+    return True
+
+
+def create_transaction_data(data):
+    r = []
+    r.append(Date(*date_str_to_int(data['Date'])))
+    r.append(int(data['Amount']))
+    r.append(data['Summary'])
+    r.append(Category(data['Category']))
+    accname, accur = data['Account'].split(': ')
+    r.append(Account(accname, 0, accur))
+    if data['Summary'] == 'Transfer':
+        accname, accur = data['Account2'].split(': ')
+        r.append(Account(accname, 0, accur))
+    return r
+
 class Transaction:
-    def __init__(self, date, amount, summary, account, category=None):
+    def __init__(self, date, amount, summary, category, account, account2=None):
         self.date = date
         self.amount = amount
         self.summary = summary
-        self.account = account
         self.category = category
+        self.account = account
+        self.account2 = account2
 
     def __eq__(self, other):
         return (
@@ -206,16 +245,3 @@ def transaction_between_accounts(acc1: Account, acc2: Account, amount: int, date
 
 
 transactionList = TransactionsList()
-transactionList.push(Transaction(Date(*date_str_to_int('2/7/2021')), 83, 'Expense', 'acc'))
-transactionList.push(Transaction(Date(*date_str_to_int('3/7/2021')), -23, 'Expense', 'ac1'))
-transactionList.push(Transaction(Date(*date_str_to_int('2/7/2022')), 33, 'Income', 'acc'))
-transactionList.push(Transaction(Date(*date_str_to_int('9/8/2021')), 33, 'Income', 'acc', 'Groceries'))
-transactionList.push(Transaction(Date(*date_str_to_int('12/8/2021')), 14, 'Income', 'acc2', 'Restaurants'))
-transactionList.push(Transaction(Date(*date_str_to_int('12/8/2021')), 14, 'Income', 'acc2', 'Restaurants'))
-transactionList.push(Transaction(Date(*date_str_to_int('12/8/2021')), 14, 'Income', 'acc2', 'Restaurants'))
-transactionList.push(Transaction(Date(*date_str_to_int('12/8/2021')), 14, 'Income', 'acc2', 'Restaurants'))
-transactionList.push(Transaction(Date(*date_str_to_int('12/8/2021')), 14, 'Income', 'acc2', 'Restaurants'))
-transactionList.push(Transaction(Date(*date_str_to_int('12/8/2021')), 14, 'Income', 'acc2', 'Restaurants'))
-transactionList.push(Transaction(Date(*date_str_to_int('12/8/2021')), 14, 'Income', 'acc2', 'Restaurants'))
-transactionList.push(Transaction(Date(*date_str_to_int('12/8/2021')), 14, 'Income', 'acc2', 'Restaurants'))
-transactionList.push(Transaction(Date(*date_str_to_int('12/8/2021')), 14, 'Income', 'acc2', 'Restaurants'))
