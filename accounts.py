@@ -35,12 +35,6 @@ class Account:
         self.balance = int(balance)
         self.currency = currency
 
-    def add(self, amount=0):
-        self.balance += amount
-
-    def sub(self, amount=0):
-        self.balance -= amount
-
     def __str__(self):
         return f'{self.name}: {self.currency}'
 
@@ -52,6 +46,15 @@ class Account:
 
     def __lt__(self, other):
         return self.name < other.name
+
+    def add_funds(self, amount=0):
+        for i in accounts:
+            if i == self:
+                i.balance += amount
+                return
+
+    def sub_funds(self, amount=0):
+        self.add_funds(-amount)
 
 
 class Category:
@@ -118,6 +121,7 @@ def create_transaction_data(data):
         accname, accur = data['Account2'].split(': ')
         r.append(Account(accname, 0, accur))
     return r
+
 
 class Transaction:
     def __init__(self, date, amount, summary, category, account, account2=None):
@@ -241,7 +245,7 @@ def converted(amount: int, curr1: str, curr2: str, date=None):
 def transaction_between_accounts(acc1: Account, acc2: Account, amount: int, date=None):
     # subtracts amount from acc1.balance and adds it to acc2.balance
     acc1.sub(amount)
-    acc2.add(converted(amount, acc1.currency, acc2.currency, date))
+    acc2.add_funds(converted(amount, acc1.currency, acc2.currency, date))
 
 
 transactionList = TransactionsList()

@@ -374,6 +374,7 @@ class OverviewTab(Tab):
         dialog = AddInputDialog('Add Transaction')
         dialog.run()
         dialog.destroy()
+
         if not dialog.ok:
             return
 
@@ -383,9 +384,16 @@ class OverviewTab(Tab):
             errordialog.run()
             errordialog.destroy()
             return
-        accounts.transactionList.push(accounts.Transaction(
-            *accounts.create_transaction_data(response)
-        ))
+        transaction = accounts.Transaction(*accounts.create_transaction_data(response))
+        if transaction.summary == 'Income':
+            transaction.account.add_funds(transaction.amount)
+        elif transaction.summary == 'Expense':
+            transaction.account.sub_funds(transaction.amount)
+        else:
+            accounts.transaction_between_accounts(
+                transaction.account, transaction.account2, transaction.amount
+            )
+        accounts.transactionList.push(transaction)
         self.treeView.set_model(OverviewStore())
 
     def on_filter_btn_clicked(self, btn):
