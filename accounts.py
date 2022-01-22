@@ -200,9 +200,10 @@ class TransactionsList:
         return True
 
     def filter(self, parent, filters):
+        r = []
         for i in parent:
             if self._check_filter(filters, i):
-                yield i
+                r.append(i)
 
     def push(self, transaction):
         """
@@ -249,3 +250,57 @@ def transaction_between_accounts(acc1: Account, acc2: Account, amount: int, date
 
 
 transactionList = TransactionsList()
+transactionList.push(Transaction(*create_transaction_data(
+{'Date': '12/07/2022', 'Amount': '1234', 'Category': 'Other', 'Account': 'Card: EUR', 'Account2': 'smth: EUR', 'Summary': 'Income'}
+
+)))
+transactionList.push(Transaction(*create_transaction_data(
+{'Date': '30/06/2021', 'Amount': '24324', 'Category': 'Other', 'Account': 'Cash: EUR', 'Account2': 'smth: EUR', 'Summary': 'Expense'}
+
+)))
+
+
+def delete_transaction(id):
+    transaction = transactionList.list[id]
+    if transaction.summary == 'Income':
+        transaction.account.sub_funds(transaction.amount)
+    elif transaction.summary == 'Expense':
+        transaction.account.add_funds(transaction.amount)
+    else:
+        accounts.transaction_between_accounts(
+            transaction.account2, transaction.account1, converted(
+                transaction.amount, transaction.account.currency, transaction.account2.currency
+            )
+        )
+    del transactionList.list[id]
+
+
+def delete_category(category):
+    # this function deletes a category together with all the transactions attached to it
+    # but it does not refund the accounts because i imagine the user wouldnt want it
+
+    # deleting the transactions
+    i = 0
+    while i < len(transactionList.list):
+        if transactionList.list[i].category == category:
+            del transactionList.list[i]
+        else:
+            i += 1
+
+    categories.remove(category)
+
+
+def delete_account(account):
+    # <almost-copy-pasted-part>this function deletes a category
+    # together with all the transactions attached to it but it does not
+    # refund the accounts because i imagine the user wouldnt want it</almost-copy-pasted-part>
+
+    # deleting the transactions
+    i = 0
+    while i < len(transactionList.list):
+        if transactionList.list[i].account == account:
+            del transactionList.list[i]
+        else:
+            i += 1
+
+    accounts.remove(account)

@@ -193,7 +193,7 @@ class AddInputDialog(Gtk.Dialog):
             except AttributeError:
                 self.response[key] = self.response[key].get_text()
         self.response['Summary'] = self.summary
-        # print(self.response)
+        print(self.response)
         self.ok = True
         self.destroy()
 
@@ -335,6 +335,7 @@ class OverviewTab(Tab):
         self.tools.pack_start(self.filterbtn, True, True, 0)
 
         self.deletebtn = ToolButton('Delete')
+        self.deletebtn.connect('clicked', self.on_delete_btn_clicked)
         self.tools.pack_start(self.deletebtn, True, True, 0)
 
         # the table itself
@@ -345,6 +346,9 @@ class OverviewTab(Tab):
         self.treeView = Gtk.TreeView()
         self.treeView.set_model(OverviewStore())
         self.treeView.set_size_request(1000, 800)
+        self.treeView.set_activate_on_single_click(True)
+        self.treeView.connect('row_activated', self.on_row_activated)
+        self.selectedRow = None
         rendererText = Gtk.CellRendererText(font='Sans Serif 11', xalign=1)
         scrolledWindow = Gtk.ScrolledWindow()
         scrolledWindow.set_min_content_height(800)
@@ -399,8 +403,13 @@ class OverviewTab(Tab):
     def on_filter_btn_clicked(self, btn):
         pass
 
+    def on_row_activated(self, tree, path, column):
+        self.selectedRow = int(str(path))
+        # print(self.selectedRow)
+
     def on_delete_btn_clicked(self, btn):
-        pass
+        accounts.delete_transaction(self.selectedRow)
+        self.treeView.set_model(OverviewStore())
 
 
 class AccountBtn(Gtk.Button):
@@ -510,7 +519,7 @@ class AccountsTab(Gtk.ScrolledWindow):
 
     def delete_account(self, btn, dialog, account):
         dialog.destroy()
-        accounts.accounts.remove(account)
+        accounts.delete_account(account)
         self.draw_accounts()
 
 
@@ -567,7 +576,7 @@ class CategoriesTab(Gtk.ScrolledWindow):
         dialog.run()
         dialog.destroy()
         if dialog.ok:
-            accounts.categories.remove(btn.category)
+            accounts.delete_category(btn.category)
             self.draw_categories()
 
     def on_add_btn_clicked(self, btn):
