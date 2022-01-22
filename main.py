@@ -170,6 +170,7 @@ class AddTransactionInputDialog(Gtk.Dialog):
         summaryIncome.connect('toggled', self.on_summary_selected)
         self.grid.attach(summaryIncome, 0, 3, 1, 1)
         summaryExpense = Gtk.RadioButton(group=summaryIncome, label='Expense')
+        summaryExpense.set_active(True)
         summaryExpense.connect('toggled', self.on_summary_selected)
         self.grid.attach(summaryExpense, 1, 3, 1, 1)
         summaryTransfer = Gtk.RadioButton(group=summaryIncome, label='Transfer')

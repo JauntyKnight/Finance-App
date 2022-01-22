@@ -110,6 +110,11 @@ def validate_transaction(data):
             return False
     except:
         return False
+    try:
+        if data['Account'] == data['Account2']:
+            return False
+    except:
+        pass
     # no need to check smth else, since the other options are choosen
     # from a set of options
     return True
@@ -219,6 +224,7 @@ class TransactionsList:
         for i in parent:
             if self._check_filter(filters, i):
                 r.append(i)
+        return TransactionsList(r)
 
     def push(self, transaction):
         """
@@ -321,59 +327,54 @@ def find_account(account):
 
 def read_data():
     # reads the transactions, accounts and categories from separate .json files
-    f = open('data/accounts.json', 'r')
-    while True:
-        s = f.readline()
-        if s == '':
-            break
-        s = json.loads(s)
-        accounts.add(Account(
-            s['Name'],
-            float(s['Balance']),
-            s['Currency']
-        ))
-    f.close()
+    with open('data/accounts.json', 'r') as f:
+        while True:
+            s = f.readline()
+            if s == '':
+                break
+            s = json.loads(s)
+            accounts.add(Account(
+                s['Name'],
+                float(s['Balance']),
+                s['Currency']
+            ))
 
-    f = open('data/categories.json', 'r')
-    while True:
-        s = f.readline()
-        if s == '':
-            break
-        s = json.loads(s)
-        categories.add(Category(
-            s['Name']
-        ))
-    f.close()
+    with open('data/categories.json', 'r') as f:
+        while True:
+            s = f.readline()
+            if s == '':
+                break
+            s = json.loads(s)
+            categories.add(Category(
+                s['Name']
+            ))
 
-    f = open('data/transactions.json', 'r')
-    while True:
-        s = f.readline()
-        if s == '':
-            break
-        s = json.loads(s)
-        transactionList.push(Transaction(
-            Date(*date_str_to_int(s['Date'])),
-            float(s['Amount']),
-            s['Summary'],
-            Category(s['Category']),
-            Account(s['Account']),
-            None if s['Account2'] == 'None' else Account(s['Account2'])
-        ))
-    f.close()
+    with open('data/transactions.json', 'r') as f:
+        while True:
+            s = f.readline()
+            if s == '':
+                break
+            s = json.loads(s)
+            transactionList.push(Transaction(
+                Date(*date_str_to_int(s['Date'])),
+                float(s['Amount']),
+                s['Summary'],
+                Category(s['Category']),
+                Account(s['Account']),
+                None if s['Account2'] == 'None' else Account(s['Account2'])
+            ))
+
 
 def print_data():
     # prints the transactions, accounts and categories into separate .json files
-    f = open('data/transactions.json', 'w')
-    for transaction in transactionList:
-        f.write(json.dumps(transaction.to_dict()) + '\n')
-    f.close()
+    with open('data/transactions.json', 'w') as f:
+        for transaction in transactionList:
+            f.write(json.dumps(transaction.to_dict()) + '\n')
 
-    f = open('data/accounts.json', 'w')
-    for account in accounts:
-        f.write(json.dumps(account.to_dict()) + '\n')
-    f.close()
+    with open('data/accounts.json', 'w') as f:
+        for account in accounts:
+            f.write(json.dumps(account.to_dict()) + '\n')
 
-    f = open('data/categories.json', 'w')
-    for category in categories:
-        f.write(json.dumps(category.to_dict()) + '\n')
-    f.close()
+    with open('data/categories.json', 'w') as f:
+        for category in categories:
+            f.write(json.dumps(category.to_dict()) + '\n')
