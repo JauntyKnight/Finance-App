@@ -280,8 +280,8 @@ def delete_transaction(id):
     elif transaction.summary == 'Expense':
         transaction.account.add_funds(transaction.amount)
     else:
-        accounts.transaction_between_accounts(
-            transaction.account2, transaction.account1, converted(
+        transaction_between_accounts(
+            transaction.account2, transaction.account, converted(
                 transaction.amount, transaction.account.currency, transaction.account2.currency
             )
         )

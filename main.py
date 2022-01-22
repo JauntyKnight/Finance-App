@@ -258,6 +258,51 @@ class AddTransactionInputDialog(Gtk.Dialog):
                 self.grid.show_all()
 
 
+class FilterTransactionsInputDialog(Gtk.Dialog):
+    def __init__(self, title):
+        super(FilterTransactionsInputDialog, self).__init__(title=title)
+        grid = Gtk.Grid(column_spacing=10, row_spacing=10)
+        self.get_content_area().add(grid)
+
+        self.response = dict()
+
+        grid.attach(Gtk.Label(label='Date from'), 0, 0, 1, 1)
+        entry = Gtk.Entry()
+        self.response['Date from'] = entry
+        grid.attach(entry, 1, 0, 2, 1)
+
+        grid.attach(Gtk.Label(label='Date to'), 0, 1, 1, 1)
+        entry = Gtk.Entry()
+        self.response['Date to'] = entry
+        grid.attach(entry, 1, 1, 2, 1)
+
+        grid.attach(Gtk.Label(label='Amount from'), 0, 2, 1, 1)
+        entry = Gtk.Entry()
+        self.response['Amount from'] = entry
+        grid.attach(entry, 1, 2, 2, 1)
+
+        grid.attach(Gtk.Label(label='Amount to'), 0, 3, 1, 1)
+        entry = Gtk.Entry()
+        self.response['Amount to'] = entry
+        grid.attach(entry, 1, 3, 2, 1)
+
+        checkbtn = Gtk.CheckButton(label='Income')
+        self.response['Income'] = None
+        checkbtn.connect('toggled', self.on_check_btn_toggled)
+        grid.attach(checkbtn, 0, 4, 1, 1)
+        checkbtn = Gtk.CheckButton(label='Expense')
+        self.response['Expense'] = None
+        checkbtn.connect('toggled', self.on_check_btn_toggled)
+        grid.attach(checkbtn, 1, 4, 1, 1)
+        checkbtn = Gtk.CheckButton(label='Transfer')
+        self.response['Transfer'] = None
+        checkbtn.connect('toggled', self.on_check_btn_toggled)
+        grid.attach(checkbtn, 2, 4, 1, 1)
+
+    def on_check_btn_toggled(self, btn):
+        pass
+
+
 class MenuItem(Gtk.Button):
     def __init__(self, name):
         super(MenuItem, self).__init__()
@@ -311,7 +356,6 @@ class Tab(Gtk.Grid):
         """
         template/superclass for the tabs present in the application
         the menu for accessing them is on the left side
-
         the class is designed only for inheritance
         """
         self.set_row_spacing(10)
@@ -335,7 +379,7 @@ class Transaction(list):
 class OverviewStore(Gtk.ListStore):
     def __init__(self, data=accounts.transactionList):
         super(OverviewStore, self).__init__(
-            *[str for _ in range(5)]
+            *(5 * [str])
         )
 
         self._draw_transactions()
@@ -553,8 +597,8 @@ class AccountsTab(Gtk.ScrolledWindow):
 
         # if reached here, we have to change the data of the account
         if (
-            dialog.response[0] != btn.account.name
-            and not self.new_account_validation(dialog.response)
+                dialog.response[0] != btn.account.name
+                and not self.new_account_validation(dialog.response)
         ):
             errordialog = InputDialog('Error')
             errordialog.run()
