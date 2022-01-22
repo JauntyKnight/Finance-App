@@ -88,6 +88,12 @@ class InputDialog(Gtk.Dialog):
     def on_cancel_clicked(self, btn):
         self.destroy()
 
+
+class AddInputDialog(InputDialog):
+    def __init__(self, title):
+        super(AddInputDialog, self).__init__(title)
+
+
 class MenuItem(Gtk.Button):
     def __init__(self, name):
         super(MenuItem, self).__init__()
@@ -182,7 +188,11 @@ class OverviewTab(Tab):
         self.addBtn.connect('clicked', self.on_tool_btn_clicked)
         self.tools.pack_start(self.addBtn, True, True, 0)
 
-        self.tools.pack_start(ToolButton('Filter'), True, True, 0)
+        self.filterbtn = ToolButton('Filter')
+        self.tools.pack_start(self.filterbtn, True, True, 0)
+
+        self.deletebtn = ToolButton('Delete')
+        self.tools.pack_start(self.deletebtn, True, True, 0)
 
         # the table itself
         self.header = Gtk.Box()
@@ -194,8 +204,8 @@ class OverviewTab(Tab):
         self.treeView.set_size_request(1000, 800)
         rendererText = Gtk.CellRendererText(font='Sans Serif 11', xalign=1)
         scrolledWindow = Gtk.ScrolledWindow()
-        scrolledWindow.set_min_content_height(900)
-        scrolledWindow.set_min_content_width(800)
+        scrolledWindow.set_min_content_height(800)
+        scrolledWindow.set_min_content_width(1000)
         scrolledWindow.add(self.treeView)
 
         for i in range(len(btns)):
@@ -216,14 +226,18 @@ class OverviewTab(Tab):
         self.treeView.set_model(OverviewStore())
 
     def on_tool_btn_clicked(self, btn):
-        if btn.name == 'Add':
-            # the add button has been pressed
-            dialog = InputDialog('Add transaction',
-                'Date', 'Amount', 'Category', 'Account'
-            )
+        dialog = InputDialog('Add transaction',
+            'Date', 'Amount', 'Category', 'Account'
+        )
         d = dialog.run()
         dialog.destroy()
         response = dialog.response
+
+    def on_filter_btn_clicked(self, btn):
+        pass
+
+    def on_delete_btn_clicked(self, btn):
+        pass
 
 
 class AccountBtn(Gtk.Button):
@@ -278,6 +292,9 @@ class AccountsTab(Gtk.ScrolledWindow):
         dialog = InputDialog('New Account', 'Name', 'Balance', 'Currency')
         dialog.run()
         dialog.destroy()
+        if not dialog.ok:
+            # the user did not click ok
+            return
         response = dialog.response
         if self.new_account_validation(response):
             accounts.accounts.add(accounts.Account(*response))
@@ -345,6 +362,7 @@ class CategoryBtn(Gtk.Button):
         vbox.pack_start(Gtk.Label(label=self.category.name), True, True, 0)
         self.show_all()
 
+
 class CategoriesTab(Gtk.ScrolledWindow):
     def __init__(self):
         super(CategoriesTab, self).__init__()
@@ -376,15 +394,40 @@ class CategoriesTab(Gtk.ScrolledWindow):
                 column = 0
         btn = Gtk.Button()
         btn.add(get_image_with_size('Add', 150, 150))
+        btn.set_size_request(180, 300)
         btn.connect('clicked', self.on_add_btn_clicked)
         self.grid.attach(btn, column, row, 1, 1)
         self.show_all()
 
     def on_category_btn_clicked(self, btn):
-        pass
+        dialog = InputDialog('Delete this category?')
+        dialog.run()
+        dialog.destroy()
+        if dialog.ok:
+            accounts.categories.remove(btn.category)
+            self.draw_categories()
 
     def on_add_btn_clicked(self, btn):
-        pass
+        dialog = InputDialog('New Category', 'Name')
+        dialog.run()
+        dialog.destroy()
+
+        if not dialog.ok:
+            # the user didn't click ok
+            return
+
+        name = dialog.response[0]
+
+        if name == '' or accounts.Category(name) in accounts.categories:
+            # a category with this name already exists
+            errordialog = InputDialog('Error')
+            errordialog.run()
+            errordialog.destroy()
+            return
+
+        accounts.categories.add(accounts.Category(name))
+        self.draw_categories()
+
 
 class ExchangeTab(Tab):
     def __init__(self):
