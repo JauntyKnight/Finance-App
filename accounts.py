@@ -1,5 +1,6 @@
 import requests
 import datetime
+import json
 
 # importing data from this website with EUR being the base currency
 url = 'http://api.exchangeratesapi.io/v1/'
@@ -41,13 +42,14 @@ class Account:
         self.currency = currency
 
     def __str__(self):
-        return f'{self.name}: {self.currency}'
+        # return f'{self.name}: {self.currency}'
+        return self.name
 
     def __hash__(self):
         return hash(self.name)
 
     def __eq__(self, other):
-        return self.name == other.name and self.currency == other.currency
+        return self.name == other.name
 
     def __lt__(self, other):
         return self.name < other.name
@@ -60,6 +62,13 @@ class Account:
 
     def sub_funds(self, amount=0):
         self.add_funds(-amount)
+
+    def to_dict(self):
+        return {
+            'Name': self.name,
+            'Balance': self.balance,
+            'Currency': self.currency
+        }
 
 
 class Category:
@@ -78,22 +87,14 @@ class Category:
     def __eq__(self, other):
         return self.name == other.name
 
+    def to_dict(self):
+        return {
+            'Name': self.name
+        }
+
 
 categories = set()
-categories.add(Category('Travel'))
-categories.add(Category('Restaurants'))
-categories.add(Category('Shopping'))
-categories.add(Category('Online Shopping'))
-categories.add(Category('Other'))
-categories.add(Category('Living'))
-categories.add(Category('Entertainment'))
-categories.add(Category('Groceries'))
-
-
 accounts = set()
-accounts.add(Account('smth'))
-accounts.add(Account('Card'))
-accounts.add(Account('Cash'))
 
 
 def validate_transaction(data):
@@ -144,6 +145,15 @@ class Transaction:
                 and self.category == other.category
         )
 
+    def to_dict(self):
+        return {
+            'Date': str(self.date),
+            'Amount': self.amount,
+            'Summary': self.summary,
+            'Category': str(self.category),
+            'Account': str(self.account),
+            'Account2': str(self.account2)
+        }
 
 class TransactionsList:
     def __init__(self, parent=None, filters=None):
@@ -255,14 +265,6 @@ def transaction_between_accounts(acc1: Account, acc2: Account, amount: int, date
 
 
 transactionList = TransactionsList()
-transactionList.push(Transaction(*create_transaction_data(
-{'Date': '12/07/2022', 'Amount': '1234', 'Category': 'Other', 'Account': 'Card: EUR', 'Account2': 'smth: EUR', 'Summary': 'Income'}
-
-)))
-transactionList.push(Transaction(*create_transaction_data(
-{'Date': '30/06/2021', 'Amount': '24324', 'Category': 'Other', 'Account': 'Cash: EUR', 'Account2': 'smth: EUR', 'Summary': 'Expense'}
-
-)))
 
 
 def delete_transaction(id):
@@ -309,3 +311,69 @@ def delete_account(account):
             i += 1
 
     accounts.remove(account)
+
+
+def find_account(account):
+    for i in accounts:
+        if account == i:
+            return i
+
+
+def read_data():
+    # reads the transactions, accounts and categories from separate .json files
+    f = open('data/accounts.json', 'r')
+    while True:
+        s = f.readline()
+        if s == '':
+            break
+        s = json.loads(s)
+        accounts.add(Account(
+            s['Name'],
+            float(s['Balance']),
+            s['Currency']
+        ))
+    f.close()
+
+    f = open('data/categories.json', 'r')
+    while True:
+        s = f.readline()
+        if s == '':
+            break
+        s = json.loads(s)
+        categories.add(Category(
+            s['Name']
+        ))
+    f.close()
+
+    f = open('data/transactions.json', 'r')
+    while True:
+        s = f.readline()
+        if s == '':
+            break
+        s = json.loads(s)
+        transactionList.push(Transaction(
+            Date(*date_str_to_int(s['Date'])),
+            float(s['Amount']),
+            s['Summary'],
+            Category(s['Category']),
+            Account(s['Account']),
+            None if s['Account2'] == 'None' else Account(s['Account2'])
+        ))
+    f.close()
+
+def print_data():
+    # prints the transactions, accounts and categories into separate .json files
+    f = open('data/transactions.json', 'w')
+    for transaction in transactionList:
+        f.write(json.dumps(transaction.to_dict()) + '\n')
+    f.close()
+
+    f = open('data/accounts.json', 'w')
+    for account in accounts:
+        f.write(json.dumps(account.to_dict()) + '\n')
+    f.close()
+
+    f = open('data/categories.json', 'w')
+    for category in categories:
+        f.write(json.dumps(category.to_dict()) + '\n')
+    f.close()

@@ -322,7 +322,8 @@ class Transaction(list):
         super(Transaction, self).__init__()
         data = [
             transaction.date, f'{transaction.amount:.2f}', transaction.category,
-            transaction.summary, transaction.account
+            transaction.summary,
+            f'{transaction.account}: {accounts.find_account(transaction.account).currency}'
         ]
         if transaction.account2:
             data[-1] = f'{transaction.account} -> {transaction.account2}'
@@ -671,7 +672,11 @@ class Window(Gtk.Window):
         self.set_hexpand(False)
 
 
+accounts.read_data()
+
 win = Window()
 win.connect('destroy', Gtk.main_quit)
 win.show_all()
 Gtk.main()
+
+accounts.print_data()
