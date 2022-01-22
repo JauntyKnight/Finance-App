@@ -1,6 +1,7 @@
 import requests
 import datetime
 import json
+import os
 
 # importing data from this website with EUR being the base currency
 url = 'http://api.exchangeratesapi.io/v1/'
@@ -327,7 +328,7 @@ def find_account(account):
 
 def read_data():
     # reads the transactions, accounts and categories from separate .json files
-    with open('data/accounts.json', 'r') as f:
+    with open(os.path.join('data', 'accounts.json'), 'r') as f:
         while True:
             s = f.readline()
             if s == '':
@@ -339,7 +340,7 @@ def read_data():
                 s['Currency']
             ))
 
-    with open('data/categories.json', 'r') as f:
+    with open(os.path.join('data', 'categories.json'), 'r') as f:
         while True:
             s = f.readline()
             if s == '':
@@ -349,7 +350,7 @@ def read_data():
                 s['Name']
             ))
 
-    with open('data/transactions.json', 'r') as f:
+    with open(os.path.join('data', 'transactions.json'), 'r') as f:
         while True:
             s = f.readline()
             if s == '':
@@ -367,14 +368,14 @@ def read_data():
 
 def print_data():
     # prints the transactions, accounts and categories into separate .json files
-    with open('data/transactions.json', 'w') as f:
+    with open(os.path.join('data', 'transactions.json'), 'w') as f:
         for transaction in transactionList:
             f.write(json.dumps(transaction.to_dict()) + '\n')
 
-    with open('data/accounts.json', 'w') as f:
+    with open(os.path.join('data', 'accounts.json'), 'w') as f:
         for account in accounts:
             f.write(json.dumps(account.to_dict()) + '\n')
 
-    with open('data/categories.json', 'w') as f:
+    with open(os.path.join('data', 'categories.json'), 'w') as f:
         for category in categories:
             f.write(json.dumps(category.to_dict()) + '\n')

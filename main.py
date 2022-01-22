@@ -1,5 +1,6 @@
 import gi
 import accounts
+import os
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GdkPixbuf, Pango, Gio
@@ -16,11 +17,11 @@ def get_image_with_size(file: str, width: int, height: int):
     img = Gtk.Image()
     try:
         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-            'img/' + file + '.png', width=width, height=height, preserve_aspect_ratio=False
+            os.path.join('img', file + '.png'), width=width, height=height, preserve_aspect_ratio=False
         )
     except:
         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-            'img/Other.png', width=width, height=height, preserve_aspect_ratio=False
+            os.path.join('img', 'Other.png'), width=width, height=height, preserve_aspect_ratio=False
         )
     img.set_from_pixbuf(pixbuf)
     return img
@@ -298,6 +299,7 @@ class FilterTransactionsInputDialog(Gtk.Dialog):
         self.response['Transfer'] = None
         checkbtn.connect('toggled', self.on_check_btn_toggled)
         grid.attach(checkbtn, 2, 4, 1, 1)
+
 
     def on_check_btn_toggled(self, btn):
         pass
