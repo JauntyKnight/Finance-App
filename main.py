@@ -171,8 +171,8 @@ class AddTransactionInputDialog(Gtk.Dialog):
         summaryIncome.connect('toggled', self.on_summary_selected)
         self.grid.attach(summaryIncome, 0, 3, 1, 1)
         summaryExpense = Gtk.RadioButton(group=summaryIncome, label='Expense')
-        summaryExpense.set_active(True)
         summaryExpense.connect('toggled', self.on_summary_selected)
+        summaryExpense.set_active(True)
         self.grid.attach(summaryExpense, 1, 3, 1, 1)
         summaryTransfer = Gtk.RadioButton(group=summaryIncome, label='Transfer')
         summaryTransfer.connect('toggled', self.on_summary_selected)
@@ -259,6 +259,51 @@ class AddTransactionInputDialog(Gtk.Dialog):
                 self.grid.show_all()
 
 
+class MultipleSelectDialog(Gtk.Dialog):
+    def __init__(self, title, iterator, prev_answer):
+        super(MultipleSelectDialog, self).__init__(title=title)
+        vbox = Gtk.VBox()
+        scrollWin = Gtk.ScrolledWindow()
+        scrollWin.set_min_content_height(600)
+        scrollWin.set_min_content_width(300)
+        self.get_content_area().add(scrollWin)
+        scrollWin.add(vbox)
+        self.response = set()
+
+        if iterator is accounts.categories:
+            for i in iterator:
+                btn = Gtk.CheckButton(label=i.name)
+                btn.connect('toggled', self.on_toggle)
+                if len(prev_answer) == 0 or i.name in prev_answer:
+                    btn.set_active(True)
+                btn.set_size_request(150, 20)
+                box = Gtk.Box()
+                box.pack_start(btn, True, True, 0)
+                box.pack_start(get_image_with_size(i.name, 30, 30), True, True, 0)
+                vbox.pack_start(box, True, True, 0)
+        else:
+            for i in iterator:
+                btn = Gtk.CheckButton(label=i.name)
+                btn.connect('toggled', self.on_toggle)
+                if len(prev_answer) == 0 or i.name in prev_answer:
+                    btn.set_active(True)
+                box = Gtk.Box()
+                box.pack_start(btn, True, True, 0)
+                box.pack_start(Gtk.Label(label=i.currency), True, True, 0)
+                vbox.pack_start(box, True, True, 0)
+
+        btn = Gtk.Button(label='Select')
+        btn.connect('clicked', lambda x: self.destroy())
+        vbox.pack_start(btn, True, True, 0)
+        self.show_all()
+
+    def on_toggle(self, btn):
+        if btn.get_active():
+            self.response.add(btn.get_label())
+        else:
+            self.response.remove(btn.get_label())
+
+
 class FilterTransactionsInputDialog(Gtk.Dialog):
     def __init__(self, title):
         super(FilterTransactionsInputDialog, self).__init__(title=title)
@@ -274,11 +319,13 @@ class FilterTransactionsInputDialog(Gtk.Dialog):
 
         grid.attach(Gtk.Label(label='Date to'), 0, 1, 1, 1)
         entry = Gtk.Entry()
+        entry.set_text(str(accounts.get_todays_date()))
         self.response['Date to'] = entry
         grid.attach(entry, 1, 1, 2, 1)
 
         grid.attach(Gtk.Label(label='Amount from'), 0, 2, 1, 1)
         entry = Gtk.Entry()
+        entry.set_text('0.00')
         self.response['Amount from'] = entry
         grid.attach(entry, 1, 2, 2, 1)
 
@@ -287,23 +334,74 @@ class FilterTransactionsInputDialog(Gtk.Dialog):
         self.response['Amount to'] = entry
         grid.attach(entry, 1, 3, 2, 1)
 
+        self.response['Summary'] = set()
         checkbtn = Gtk.CheckButton(label='Income')
-        self.response['Income'] = None
         checkbtn.connect('toggled', self.on_check_btn_toggled)
         grid.attach(checkbtn, 0, 4, 1, 1)
         checkbtn = Gtk.CheckButton(label='Expense')
-        self.response['Expense'] = None
         checkbtn.connect('toggled', self.on_check_btn_toggled)
+        checkbtn.set_active(True)
         grid.attach(checkbtn, 1, 4, 1, 1)
         checkbtn = Gtk.CheckButton(label='Transfer')
-        self.response['Transfer'] = None
         checkbtn.connect('toggled', self.on_check_btn_toggled)
         grid.attach(checkbtn, 2, 4, 1, 1)
 
+        self.response['Category'] = set([i.name for i in accounts.categories])
+        grid.attach(Gtk.Label(label='Category'), 0, 5, 1, 1)
+        btn = Gtk.Button(label='Select category..')
+        btn.connect('clicked', self.on_select_click, True)
+        grid.attach(btn, 1, 5, 2, 1)
+
+        self.response['Account'] = set([i.name for i in accounts.accounts])
+        grid.attach(Gtk.Label(label='Account'), 0, 6, 1, 1)
+        btn = Gtk.Button(label='Select account..')
+        btn.connect('clicked', self.on_select_click, False)
+        grid.attach(btn, 1, 6, 2, 1)
+
+        btn = Gtk.Button(label='Filter')
+        btn.connect('clicked', self.on_ok_btn_click)
+        self.ok = False
+        self.connect('key_release_event', self.on_key_release)
+        grid.attach(btn, 0, 7, 2, 1)
+        btn = Gtk.Button(label='Cancel')
+        btn.connect('clicked', lambda x: self.destroy())
+        grid.attach(btn, 2, 7, 1, 1)
+
+        self.show_all()
 
     def on_check_btn_toggled(self, btn):
-        pass
+        if btn.get_active():
+            self.response['Summary'].add(btn.get_label())
+        else:
+            self.response['Summary'].remove(btn.get_label())
 
+    def on_ok_btn_click(self, btn):
+        self.ok = True
+        self.response['Date from'] = self.response['Date from'].get_text()
+        self.response['Date to'] = self.response['Date to'].get_text()
+        self.response['Amount from'] = self.response['Amount from'].get_text()
+        self.response['Amount to'] = self.response['Amount to'].get_text()
+        self.destroy()
+
+    def on_key_release(self, widget, event):
+        if event.keyval == 65293:
+            # the Enter key has been released
+            self.on_ok_btn_clicked(None)
+
+    def on_select_click(self, btn, selection):
+        # opens a selection dialog for categories if selection
+        # and for accounts if false
+        if selection:
+            dialog = MultipleSelectDialog('Select Categories', accounts.categories, self.response['Category'])
+            dialog.run()
+            dialog.destroy()
+            self.response['Category'] = dialog.response
+        else:
+            dialog = MultipleSelectDialog('Select Accounts', accounts.accounts, self.response['Account'])
+            dialog.run()
+            dialog.destroy()
+            self.response['Account'] = dialog.response
+        # print(dialog.response)
 
 class MenuItem(Gtk.Button):
     def __init__(self, name):
@@ -340,7 +438,8 @@ class ToolButton(Gtk.Button):
         self.name = name
 
         box.pack_start(get_image_with_size(self.name, 20, 20), True, True, 0)
-        box.pack_start(Gtk.Label(label=self.name), True, True, 0)
+        self.label = Gtk.Label(label=self.name)
+        box.pack_start(self.label, True, True, 0)
 
 
 class HeaderButton(Gtk.Button):
@@ -383,11 +482,11 @@ class OverviewStore(Gtk.ListStore):
         super(OverviewStore, self).__init__(
             *(5 * [str])
         )
-
+        self.data = data
         self._draw_transactions()
 
     def _draw_transactions(self):
-        for transaction in accounts.transactionList:
+        for transaction in self.data:
             self.append(Transaction(transaction))
 
 
@@ -402,6 +501,8 @@ class OverviewTab(Tab):
         self.tools.pack_start(self.addBtn, True, True, 0)
 
         self.filterbtn = ToolButton('Filter')
+        self.filterApplied = False
+        self.filterbtn.connect('clicked', self.on_filter_btn_clicked)
         self.tools.pack_start(self.filterbtn, True, True, 0)
 
         self.deletebtn = ToolButton('Delete')
@@ -440,8 +541,12 @@ class OverviewTab(Tab):
         self.attach(scrolledWindow, 0, 2, 1, 1)
 
     def on_header_btn_clicked(self, btn):
-        accounts.transactionList.sort(btn.get_title())
-        self.treeView.set_model(OverviewStore())
+        if not self.filterApplied:
+            accounts.transactionList.sort(btn.get_title())
+            self.treeView.set_model(OverviewStore())
+        else:
+            accounts.filterTransactionList.sort(btn.get_title())
+            self.treeView.set_model(OverviewStore(accounts.filterTransactionList))
 
     def on_key_release(self, widget, key):
         if key.keyval == 65535:
@@ -471,7 +576,7 @@ class OverviewTab(Tab):
 
         response = dialog.response
         if not accounts.validate_transaction(response):
-            errordialog = InputDialog('Error')
+            errordialog = InputDialog('Wrong data')
             errordialog.run()
             errordialog.destroy()
             return
@@ -488,7 +593,28 @@ class OverviewTab(Tab):
         self.treeView.set_model(OverviewStore())
 
     def on_filter_btn_clicked(self, btn):
-        pass
+        if self.filterApplied:
+            self.treeView.set_model(OverviewStore())
+            self.filterbtn.label.set_label('Filter')
+            self.filterApplied = False
+            return
+
+        dialog = FilterTransactionsInputDialog('Filter transactions')
+        dialog.run()
+        dialog.destroy()
+        if not dialog.ok:
+            return
+        if not accounts.validate_filter(dialog.response):
+            errordialog = InputDialog('Wrong data')
+            errordialog.run()
+            errordialog.destroy()
+            return
+        self.filterApplied = True
+        self.filterbtn.label.set_label('Remove filter')
+        accounts.transactionList.filter(dialog.response)
+        self.treeView.set_model(OverviewStore(
+            accounts.filterTransactionList
+        ))
 
     def on_row_activated(self, tree, path, column):
         self.selectedRow = int(str(path))
@@ -566,7 +692,7 @@ class AccountsTab(Gtk.ScrolledWindow):
             accounts.accounts.add(accounts.Account(*response))
             self.draw_accounts()
         else:
-            dialog = InputDialog('Error')
+            dialog = InputDialog('Wrong data')
             dialog.run()
             dialog.destroy()
 
@@ -602,7 +728,7 @@ class AccountsTab(Gtk.ScrolledWindow):
                 dialog.response[0] != btn.account.name
                 and not self.new_account_validation(dialog.response)
         ):
-            errordialog = InputDialog('Error')
+            errordialog = InputDialog('Wrong data')
             errordialog.run()
             errordialog.destroy()
             return
@@ -686,7 +812,7 @@ class CategoriesTab(Gtk.ScrolledWindow):
 
         if name == '' or accounts.Category(name) in accounts.categories:
             # a category with this name already exists
-            errordialog = InputDialog('Error')
+            errordialog = InputDialog('Wrong data')
             errordialog.run()
             errordialog.destroy()
             return

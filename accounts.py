@@ -97,6 +97,32 @@ class Category:
 categories = set()
 accounts = set()
 
+def validate_filter(data):
+    if data['Date from'] != '':
+        try:
+            Date(*date_str_to_int(data['Date from']))
+        except:
+            return False
+    if data['Date to'] != '':
+        try:
+            Date(*date_str_to_int(data['Date to']))
+        except:
+            return False
+    if data['Amount from'] != '':
+        try:
+            a = float(data['Amount from'])
+            if a < 0:
+                return False
+        except:
+            return False
+    if data['Amount to'] != '':
+        try:
+            a = float(data['Amount to'])
+            if a < 0:
+                return False
+        except:
+            return False
+    return True
 
 def validate_transaction(data):
     # checking the date
@@ -162,11 +188,11 @@ class Transaction:
         }
 
 class TransactionsList:
-    def __init__(self, parent=None, filters=None):
+    def __init__(self, parent=None):
         if not parent:
             self.list = []  # must always be sorted by the date of transaction
         else:
-            self.list = self.filter(parent, filters)
+            self.list = parent
         self.keys = ('Date', 'Amount', 'Category', 'Summary', 'Account')
         self.sortedBy = ''
 
@@ -206,26 +232,49 @@ class TransactionsList:
         Category: list of categories
         Account: list of accounts
         """
-        if 'Date from' in filters and filters['Date from'] > transaction.date:
+        if (
+                filters['Date from'] != ''
+                and Date(*date_str_to_int(filters['Date from'])) > transaction.date
+        ):
             return False
-        if 'Date to' in filters and filters['Date to'] < transaction.date:
+        if (
+                filters['Date to'] != ''
+                and Date(*date_str_to_int(filters['Date to'])) < transaction.date
+        ):
             return False
-        if 'Amount from' in filters and filters['Amount from'] > transaction.amount:
+        if (
+                filters['Amount from'] != ''
+                and float(filters['Amount from']) > transaction.amount
+        ):
             return False
-        if 'Amount to' in filters and filters['Amount to'] < transaction.amount:
+        if (
+                filters['Amount to'] != ''
+                and float(filters['Amount to']) < transaction.amount
+        ):
             return False
-        if 'Category' in filters and transaction.category not in filters['Category']:
+        if transaction.summary not in filters['Summary']:
             return False
-        if 'Account' in filters and transaction.account not in filters['Account']:
+        if transaction.category.name not in filters['Category']:
+            return False
+        if (
+            transaction.account.name not in filters['Account']
+            and (
+                transaction.account2 is None
+                or transaction.account2.name not in filters['Account']
+            )
+        ):
             return False
         return True
 
-    def filter(self, parent, filters):
+
+    def filter(self, filters):
+        global filterTransactionList
+        # print(filters)
         r = []
-        for i in parent:
+        for i in self.list:
             if self._check_filter(filters, i):
                 r.append(i)
-        return TransactionsList(r)
+        filterTransactionList = TransactionsList(r)
 
     def push(self, transaction):
         """
@@ -234,14 +283,6 @@ class TransactionsList:
         :return: None
         """
         self.list.append(transaction)
-
-    def remove(self, transaction):
-        """
-        TBA
-        :param transaction:
-        :return:
-        """
-        pass
 
     def __iter__(self):
         return (i for i in self.list)
@@ -272,7 +313,7 @@ def transaction_between_accounts(acc1: Account, acc2: Account, amount: int, date
 
 
 transactionList = TransactionsList()
-
+filterTransactionList = TransactionsList()
 
 def delete_transaction(id):
     transaction = transactionList.list[id]
