@@ -72,13 +72,19 @@ class InputDialog(Gtk.Dialog):
             self.grid.attach(Gtk.Label(label=str(self.data[i]), margin_left=20), 0, i, 1, 1)
             self.grid.attach(self.response[i], 1, i, 1, 1)
 
-        okbtn = Gtk.Button(label='Ok')
-        okbtn.connect('clicked', self.on_ok_clicked)
+        self.okbtn = Gtk.Button(label='Ok')
+        self.okbtn.connect('clicked', self.on_ok_clicked)
         cancelbtn = Gtk.Button(label='Cancel')
         self.ok = False
+        self.connect('key_release_event', self.on_key_release)
         cancelbtn.connect('clicked', self.on_cancel_clicked)
-        self.grid.attach(create_box_with_children(okbtn, cancelbtn), 0, len(self.data), 2, 1)
+        self.grid.attach(create_box_with_children(self.okbtn, cancelbtn), 0, len(self.data), 2, 1)
         self.grid.show_all()
+
+    def on_key_release(self, widget, event):
+        if event.keyval == 65293:
+            # the Enter key has been released
+            self.on_ok_clicked(None)
 
     def on_ok_clicked(self, btn):
         self.response = [entry.get_text() for entry in self.response]
@@ -89,13 +95,19 @@ class InputDialog(Gtk.Dialog):
         self.destroy()
 
 
+class AddInputDialog(InputDialog):
+    def __init__(self, title, *data):
+        super(AddInputDialog, self).__init__(title, *data)
+        self.okbtn.set_label('Add')
+
+
 class SelectDialog(Gtk.Dialog):
     def __init__(self, title, iterator):
         super(SelectDialog, self).__init__(title=title)
 
         scrollWin = Gtk.ScrolledWindow()
         scrollWin.set_min_content_height(600)
-        scrollWin.set_min_content_width(100)
+        scrollWin.set_min_content_width(300)
         self.get_content_area().add(scrollWin)
         vbox = Gtk.VBox()
         scrollWin.add(vbox)
@@ -121,9 +133,9 @@ class SelectDialog(Gtk.Dialog):
         self.destroy()
 
 
-class AddInputDialog(Gtk.Dialog):
+class AddTransactionInputDialog(Gtk.Dialog):
     def __init__(self, title):
-        super(AddInputDialog, self).__init__(title=title)
+        super(AddTransactionInputDialog, self).__init__(title=title)
         # Input dialog designed for adding transactions
 
         self.grid = Gtk.Grid(column_spacing=10, row_spacing=10)
@@ -133,6 +145,8 @@ class AddInputDialog(Gtk.Dialog):
 
         self.grid.attach(Gtk.Label(label='Date'), 0, 0, 1, 1)
         entry = Gtk.Entry()
+        # setting the default entry as today's date
+        entry.set_text(str(accounts.get_todays_date()))
         self.response['Date'] = entry
         self.grid.attach(entry, 1, 0, 2, 1)
 
@@ -142,7 +156,9 @@ class AddInputDialog(Gtk.Dialog):
         self.grid.attach(entry, 1, 1, 2, 1)
 
         self.grid.attach(Gtk.Label(label='Category'), 0, 2, 1, 1)
-        self.category = Gtk.Label(label='Other')
+        for i in accounts.categories:
+            self.category = Gtk.Label(label=i.name)
+            break
         self.response['Category'] = self.category
         self.grid.attach(self.category, 1, 2, 1, 1)
         btn = Gtk.Button(label='Select')
@@ -175,8 +191,9 @@ class AddInputDialog(Gtk.Dialog):
             break
         self.response['Account2'] = self.account2
 
-        self.okbtn = Gtk.Button(label='Ok')
+        self.okbtn = Gtk.Button(label='Add')
         self.okbtn.connect('clicked', self.on_ok_btn_clicked)
+        self.connect('key_release_event', self.on_key_release)
         self.grid.attach(self.okbtn, 0, 5, 2, 1)
         self.cancelbtn = Gtk.Button(label='Cancel')
         self.cancelbtn.connect('clicked', lambda x: self.destroy())
@@ -186,6 +203,11 @@ class AddInputDialog(Gtk.Dialog):
 
         self.show_all()
 
+    def on_key_release(self, widget, event):
+        if event.keyval == 65293:
+            # the Enter key has been released
+            self.on_ok_btn_clicked(None)
+
     def on_ok_btn_clicked(self, btn):
         for key in self.response.keys():
             try:
@@ -193,7 +215,7 @@ class AddInputDialog(Gtk.Dialog):
             except AttributeError:
                 self.response[key] = self.response[key].get_text()
         self.response['Summary'] = self.summary
-        print(self.response)
+        # print(self.response)
         self.ok = True
         self.destroy()
 
@@ -299,7 +321,7 @@ class Transaction(list):
     def __init__(self, transaction):
         super(Transaction, self).__init__()
         data = [
-            transaction.date, transaction.amount, transaction.category,
+            transaction.date, f'{transaction.amount:.2f}', transaction.category,
             transaction.summary, transaction.account
         ]
         if transaction.account2:
@@ -348,6 +370,8 @@ class OverviewTab(Tab):
         self.treeView.set_size_request(1000, 800)
         self.treeView.set_activate_on_single_click(True)
         self.treeView.connect('row_activated', self.on_row_activated)
+        self.treeView.set_enable_search(False)
+        self.treeView.connect('key_release_event', self.on_key_release)
         self.selectedRow = None
         rendererText = Gtk.CellRendererText(font='Sans Serif 11', xalign=1)
         scrolledWindow = Gtk.ScrolledWindow()
@@ -371,11 +395,26 @@ class OverviewTab(Tab):
         accounts.transactionList.sort(btn.get_title())
         self.treeView.set_model(OverviewStore())
 
+    def on_key_release(self, widget, key):
+        if key.keyval == 65535:
+            # is the Delete key
+            self.on_delete_btn_clicked(None)
+
     def on_add_btn_clicked(self, btn):
         # dialog = InputDialog(
         #     'Add transaction', 'Date', 'Amount', 'Category', 'Account'
         # )
-        dialog = AddInputDialog('Add Transaction')
+        if len(accounts.categories) == 0:
+            errordialog = InputDialog('Please, add a category')
+            errordialog.run()
+            errordialog.destroy()
+            return
+        if len(accounts.accounts) == 0:
+            errordialog = InputDialog('Please, add an account')
+            errordialog.run()
+            errordialog.destroy()
+            return
+        dialog = AddTransactionInputDialog('Add Transaction')
         dialog.run()
         dialog.destroy()
 
@@ -408,7 +447,14 @@ class OverviewTab(Tab):
         # print(self.selectedRow)
 
     def on_delete_btn_clicked(self, btn):
-        accounts.delete_transaction(self.selectedRow)
+        if self.selectedRow is None:
+            return
+        try:
+            accounts.delete_transaction(self.selectedRow)
+        except IndexError:
+            errordialog = InputDialog('There are no transactions')
+            errordialog.run()
+            errordialog.destroy()
         self.treeView.set_model(OverviewStore())
 
 
@@ -420,7 +466,7 @@ class AccountBtn(Gtk.Button):
         vbox = Gtk.VBox()
         self.add(vbox)
         vbox.pack_start(Gtk.Label(label=self.account.name), True, True, 0)
-        vbox.pack_start(Gtk.Label(label=self.account.balance), True, True, 0)
+        vbox.pack_start(Gtk.Label(label=f'{self.account.balance:.2f}'), True, True, 0)
         vbox.pack_start(Gtk.Label(label=self.account.currency), True, True, 0)
         self.show_all()
 
@@ -461,7 +507,7 @@ class AccountsTab(Gtk.ScrolledWindow):
         self.show_all()
 
     def on_add_btn_clicked(self, btn):
-        dialog = InputDialog('New Account', 'Name', 'Balance', 'Currency')
+        dialog = AddInputDialog('New Account', 'Name', 'Balance', 'Currency')
         dialog.run()
         dialog.destroy()
         if not dialog.ok:
@@ -488,7 +534,7 @@ class AccountsTab(Gtk.ScrolledWindow):
         return True
 
     def on_account_btn_clicked(self, btn):
-        dialog = InputDialog('New Account', 'Name', 'Balance', 'Currency')
+        dialog = InputDialog('Edit Account', 'Name', 'Balance', 'Currency')
         dialog.response[0].set_text(btn.account.name)
         dialog.response[1].set_text(str(btn.account.balance))
         dialog.response[2].set_text(btn.account.currency)
@@ -580,7 +626,7 @@ class CategoriesTab(Gtk.ScrolledWindow):
             self.draw_categories()
 
     def on_add_btn_clicked(self, btn):
-        dialog = InputDialog('New Category', 'Name')
+        dialog = AddInputDialog('Add New Category', 'Name')
         dialog.run()
         dialog.destroy()
 

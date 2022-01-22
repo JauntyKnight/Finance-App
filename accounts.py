@@ -18,6 +18,11 @@ def date_str_to_int(strdate: str):
     return [int(i) for i in strdate.split('/')][::-1]
 
 
+def get_todays_date():
+    s = str(datetime.datetime.today()).split()[0].split('-')
+    return Date(*(int(i) for i in s))
+
+
 class Date(datetime.date):
     def __init__(self, year, month, day):
         super(Date, self).__init__()
@@ -32,7 +37,7 @@ class Date(datetime.date):
 class Account:
     def __init__(self, name, balance=0, currency='EUR'):
         self.name = name
-        self.balance = int(balance)
+        self.balance = float(balance)
         self.currency = currency
 
     def __str__(self):
@@ -99,7 +104,7 @@ def validate_transaction(data):
         return False
     # checking the amount
     try:
-        a = int(data['Amount'])
+        a = float(data['Amount'])
         if a <= 0:
             return False
     except:
@@ -112,7 +117,7 @@ def validate_transaction(data):
 def create_transaction_data(data):
     r = []
     r.append(Date(*date_str_to_int(data['Date'])))
-    r.append(int(data['Amount']))
+    r.append(float(data['Amount']))
     r.append(data['Summary'])
     r.append(Category(data['Category']))
     accname, accur = data['Account'].split(': ')
