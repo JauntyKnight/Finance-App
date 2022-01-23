@@ -114,15 +114,15 @@ class SelectDialog(Gtk.Dialog):
         scrollWin.add(vbox)
         self.response = None
         self.iterator = iterator
-        for i in iterator:
-            if iterator is accounts.categories:
+        for i in self.iterator:
+            if self.iterator is accounts.categories:
                 btn = ToolButton(i.name)
-                btn.connect('clicked', self.on_btn_click)
-                vbox.pack_start(btn, True, True, 0)
-            else:
+            elif self.iterator is accounts.accounts:
                 btn = Gtk.Button(label=f'{i.name}: {i.currency}')
-                btn.connect('clicked', self.on_btn_click)
-                vbox.pack_start(btn, True, True, 0)
+            else:
+                btn = Gtk.Button(label=str(i))
+            btn.connect('clicked', self.on_btn_click)
+            vbox.pack_start(btn, True, True, 0)
 
         self.show_all()
 
@@ -530,8 +530,6 @@ class OverviewTab(Tab):
 
         for i in range(len(btns)):
             column = Gtk.TreeViewColumn(btns[i], rendererText, text=i)
-            column.set_indicator = True
-            column.set_fixed_width = 200
             column.set_alignment(100)
             column.set_expand(True)
             column.set_clickable(True)
@@ -824,6 +822,116 @@ class CategoriesTab(Gtk.ScrolledWindow):
 class ExchangeTab(Tab):
     def __init__(self):
         super(ExchangeTab, self).__init__()
+        scrollWin = Gtk.ScrolledWindow()
+        scrollWin.set_min_content_width(500)
+        scrollWin.set_min_content_height(870)
+        self.attach(scrollWin, 0, 0, 1, 1)
+
+        # the left panel: exchange rate table
+        treeView = Gtk.TreeView()
+        treeView.set_model(self.create_tree_model())
+        treeView.set_size_request(500, 1000)
+        scrollWin.add(treeView)
+        rendererText = Gtk.CellRendererText(xalign=1)
+        rendererImage = Gtk.CellRendererPixbuf()
+        btns = ('Currency', 'Yesterday', 'Today')
+        for i in range(len(btns)):
+            column = Gtk.TreeViewColumn(btns[i], rendererText, text=i)
+            column.set_expand(True)
+            treeView.append_column(column)
+        column = Gtk.TreeViewColumn('Graph', rendererImage, pixbuf=3)
+        treeView.append_column(column)
+
+        # right panel: currency calculator
+        vbox = Gtk.VBox(spacing=150)
+        vbox.set_size_request(500, 900)
+        self.attach(vbox, 1, 0, 1, 1)
+        vbox.pack_start(Gtk.Label(label='Currency Calculator'), True, True, 0)
+
+        box = Gtk.Box()
+        self.curr1btn = Gtk.Button(label='CZK')
+        self.curr1btn.connect('clicked', self.on_btn_click)
+        self.curr1entry = Gtk.Entry(text='0.00')
+        self.curr1entry.connect('activate', self.on_entry_activate)
+        box.pack_start(self.curr1btn, True, True, 0)
+        box.pack_start(self.curr1entry, True, True, 0)
+        vbox.pack_start(box, True, True, 0)
+
+        box = Gtk.Box()
+        self.curr2btn = Gtk.Button(label='EUR')
+        self.curr2entry = Gtk.Entry(text='0.00')
+        self.curr2btn.connect('clicked', self.on_btn_click)
+        self.curr2entry.connect('activate', self.on_entry_activate)
+        box.pack_start(self.curr2btn, True, True, 0)
+        box.pack_start(self.curr2entry, True, True, 0)
+        vbox.pack_start(box, True, True, 0)
+
+        box = Gtk.Box()
+        self.curr3btn = Gtk.Button(label='USD')
+        self.curr3entry = Gtk.Entry(text='0.00')
+        self.curr3btn.connect('clicked', self.on_btn_click)
+        self.curr3entry.connect('activate', self.on_entry_activate)
+        box.pack_start(self.curr3btn, True, True, 0)
+        box.pack_start(self.curr3entry, True, True, 0)
+        vbox.pack_start(box, True, True, 0)
+
+
+        self.show_all()
+
+    def on_entry_activate(self, entry):
+        val = entry.get_text()
+        try:
+            val = float(val)
+            if val < 0:
+                return
+        except ValueError:
+            return
+
+        # a very ugly way to find the entry that generated the signal
+        # i could have made a list of the entries, but there are only 3 of them anyway
+        if entry is self.curr1entry:
+            curr = self.curr1btn.get_label()
+        elif entry is self.curr2entry:
+            curr = self.curr2btn.get_label()
+        else:
+            curr = self.curr3btn.get_label()
+
+        if self.curr1entry is not entry:
+            self.curr1entry.set_text(f'{accounts.converted(val, curr, self.curr1btn.get_label()):.2f}')
+        if self.curr2entry is not entry:
+            self.curr2entry.set_text(f'{accounts.converted(val, curr, self.curr2btn.get_label()):.2f}')
+        if self.curr3entry is not entry:
+            self.curr3entry.set_text(f'{accounts.converted(val, curr, self.curr3btn.get_label()):.2f}')
+
+    def on_btn_click(self, btn):
+        dialog = SelectDialog('Select Currency', accounts.data['rates'].keys())
+        dialog.run()
+        dialog.destroy()
+        # unfortunately, btn is just a copy, but I need the reference
+        if btn is self.curr1btn:
+            self.curr1btn.set_label(dialog.response)
+        elif btn is self.curr2btn:
+            self.curr2btn.set_label(dialog.response)
+        else:
+            self.curr3btn.set_label(dialog.response)
+
+    def create_tree_model(self):
+        model = Gtk.ListStore(str, str, str, GdkPixbuf.Pixbuf)
+        for currency in accounts.data['rates'].keys():
+            if accounts.data['rates'][currency] > accounts.pastData['rates'][currency]:
+                graph = 'graph_up'
+            elif accounts.data['rates'][currency] < accounts.pastData['rates'][currency]:
+                graph = 'graph_down'
+            else:
+                graph = 'equal'
+            model.append([
+                currency, f"{accounts.pastData['rates'][currency]:.4f}",
+                f"{accounts.data['rates'][currency]:.4f}",
+                GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                    os.path.join('img', graph + '.png'), width=30, height=30, preserve_aspect_ratio=False
+                )
+            ])
+        return model
 
 
 class Window(Gtk.Window):

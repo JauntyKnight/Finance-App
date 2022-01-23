@@ -3,15 +3,6 @@ import datetime
 import json
 import os
 
-# importing data from this website with EUR being the base currency
-url = 'http://api.exchangeratesapi.io/v1/'
-
-# Making the request
-access_key = 'access_key=e855c4d178d5a941a369c3e0d2a76c4d'
-data = requests.get(url + 'latest' + '?' + access_key).json()
-
-months = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-
 
 def date_str_to_int(strdate: str):
     """
@@ -97,6 +88,19 @@ class Category:
 categories = set()
 accounts = set()
 
+# importing data from this website with EUR being the base currency
+url = 'http://api.exchangeratesapi.io/v1/'
+
+# Making the request
+access_key = 'access_key=e855c4d178d5a941a369c3e0d2a76c4d'
+data = requests.get(url + 'latest' + '?' + access_key).json()
+yesterday = datetime.datetime.now() - datetime.timedelta(1)
+yesterday = Date(yesterday.year, yesterday.month, yesterday.day)
+pastData = requests.get(
+        url + yesterday.url_str() + '?' + access_key
+).json()
+
+
 def validate_filter(data):
     if data['Date from'] != '':
         try:
@@ -129,6 +133,7 @@ def validate_transaction(data):
     try:
         Date(*date_str_to_int(data['Date']))
     except:
+        print('Date')
         return False
     # checking the amount
     try:
@@ -138,7 +143,8 @@ def validate_transaction(data):
     except:
         return False
     try:
-        if data['Account'] == data['Account2']:
+        if data['Summary'] == 'Transfer' and data['Account'] == data['Account2']:
+            print(data['Account'])
             return False
     except:
         pass
@@ -154,10 +160,10 @@ def create_transaction_data(data):
     r.append(data['Summary'])
     r.append(Category(data['Category']))
     accname, accur = data['Account'].split(': ')
-    r.append(Account(accname, 0, accur))
+    r.append(Account(accname))
     if data['Summary'] == 'Transfer':
         accname, accur = data['Account2'].split(': ')
-        r.append(Account(accname, 0, accur))
+        r.append(Account(accname))
     return r
 
 
@@ -297,6 +303,8 @@ def converted(amount: int, curr1: str, curr2: str, date=None):
     :param date: optional: the historical date for the transaction; latest by default
     :return: amount of currency1 in currency2
     """
+    if amount == 0:
+        return 0
     if not date:
         return amount * data['rates'][curr2] / data['rates'][curr1]
 

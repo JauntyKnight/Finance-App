@@ -1,5 +1,9 @@
 {"Date": "30/06/2021", "Amount": 24324.0, "Summary": "Expense", "Category": "Other", "Account": "Cash", "Account2": "None"}
-{"Date": "22/01/2022", "Amount": 2341.43, "Summary": "Expense", "Category": "Other", "Account": "Card", "Account2": "None"}
 {"Date": "20/01/2022", "Amount": 245.0, "Summary": "Income", "Category": "Other", "Account": "Card2", "Account2": "None"}
 {"Date": "21/01/2022", "Amount": 52.34, "Summary": "Expense", "Category": "Other", "Account": "Card2", "Account2": "None"}
+{"Date": "22/01/2022", "Amount": 2341.43, "Summary": "Expense", "Category": "Other", "Account": "Card", "Account2": "None"}
 {"Date": "22/01/2022", "Amount": 234.0, "Summary": "Expense", "Category": "Restaurants", "Account": "Card2", "Account2": "None"}
+{"Date": "22/01/2022", "Amount": 2342.0, "Summary": "Transfer", "Category": "Shopping", "Account": "Card", "Account2": "Card2"}
+{"Date": "23/01/2022", "Amount": 234.0, "Summary": "Expense", "Category": "Restaurants", "Account": "Cash", "Account2": "None"}
+{"Date": "23/01/2022", "Amount": 42.67, "Summary": "Transfer", "Category": "Restaurants", "Account": "Card", "Account2": "Cash"}
+{"Date": "23/01/2022", "Amount": 45.9, "Summary": "Expense", "Category": "NewCategory", "Account": "Card", "Account2": "None"}
