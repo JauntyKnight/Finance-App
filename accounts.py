@@ -105,26 +105,26 @@ def validate_filter(data):
     if data['Date from'] != '':
         try:
             Date(*date_str_to_int(data['Date from']))
-        except:
+        except TypeError:
             return False
     if data['Date to'] != '':
         try:
             Date(*date_str_to_int(data['Date to']))
-        except:
+        except TypeError:
             return False
     if data['Amount from'] != '':
         try:
             a = float(data['Amount from'])
             if a < 0:
                 return False
-        except:
+        except ValueError:
             return False
     if data['Amount to'] != '':
         try:
             a = float(data['Amount to'])
             if a < 0:
                 return False
-        except:
+        except ValueError:
             return False
     return True
 
@@ -132,22 +132,19 @@ def validate_transaction(data):
     # checking the date
     try:
         Date(*date_str_to_int(data['Date']))
-    except:
-        print('Date')
+    except TypeError:
         return False
     # checking the amount
     try:
         a = float(data['Amount'])
         if a <= 0:
             return False
-    except:
+    except ValueError:
         return False
-    try:
-        if data['Summary'] == 'Transfer' and data['Account'] == data['Account2']:
-            print(data['Account'])
-            return False
-    except:
-        pass
+
+    if data['Summary'] == 'Transfer' and data['Account'] == data['Account2']:
+        return False
+
     # no need to check smth else, since the other options are choosen
     # from a set of options
     return True
